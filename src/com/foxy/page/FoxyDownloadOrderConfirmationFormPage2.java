@@ -20,11 +20,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.model.SelectItem;
@@ -42,7 +42,6 @@ import com.foxy.db.Category;
 import com.foxy.db.HibernateUtil;
 import com.foxy.db.OrderSummary;
 import com.foxy.db.Orders;
-import com.foxy.page.FoxyDownloadOrderConfirmationFormPage2.descAlpha;
 import com.foxy.util.ListData;
 import com.foxy.util.OrderFormPageUtil;
 import com.itextpdf.text.BaseColor;
@@ -60,7 +59,7 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfPageEvent;
 import com.itextpdf.text.pdf.PdfWriter;
 
-public class FoxyDownloadOrderConfirmationFormPage extends Page implements Serializable {
+public class FoxyDownloadOrderConfirmationFormPage2 extends Page implements Serializable {
 
     private static String MENU_CODE = "FOXY";
     private String ordId = null;
@@ -92,7 +91,7 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
     };
 
     //Class constructor
-    public FoxyDownloadOrderConfirmationFormPage() {
+    public FoxyDownloadOrderConfirmationFormPage2() {
         super("DownloadOrderConfirmationForm");
         this.isAuthorize(MENU_CODE);
 
@@ -211,7 +210,7 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                 //extract integer value out of it 
                 pdfformat = companycodelastchar - '0';
                 //since we have 3 format only, use mod 3 for map it.
-                pdfformat = 3;
+                pdfformat = pdfformat % 3;
 
                 System.err.println("Current format selected for pdf form - [" + pdfformat + "]");
 
@@ -224,9 +223,6 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                         break;
                     case 2:
                         str = OrderConfirmationFormByCountryFmt03(ord);
-                        break;
-                    case 3:
-                        str = OrderConfirmationFormByCountryFmt04(ord);
                         break;
                     default:
                         System.err.println("ERROR -- OCF PDF format NOT FOUND IN (0-2) range - [" + pdfformat + "]");
@@ -241,364 +237,513 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
         return str;
     }
 
-    public String OrderConfirmationFormByCountryFmt01(Orders ord) { HttpServletResponse resp = (HttpServletResponse)this.ectx.getResponse();
-    ServletOutputStream out = null;
-    PdfPCell cell = null;
-    String filename = null;
-    String filepath = null;
-    String tmpstr = null;
-    TreeMap<String, Integer> sortedRmk = null;
-    ListData ld = (ListData)this.getBean("listData");
-    SimpleDateFormat fmt = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss");
-    SimpleDateFormat fmt2 = new SimpleDateFormat("dd-MMM-yyyy");
-    SimpleDateFormat fmt3 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-    SimpleDateFormat fmt4 = new SimpleDateFormat("yyyMMddHHmmss");
-    Font font12 = new Font(Font.FontFamily.HELVETICA, 12.0f);
-    Font font10 = new Font(Font.FontFamily.HELVETICA, 10.0f);
-    Font font8 = new Font(Font.FontFamily.HELVETICA, 8.0f);
-    Font font7 = new Font(Font.FontFamily.HELVETICA, 7.0f);
-    Font tblHeader = new Font(Font.FontFamily.HELVETICA, 8.0f);
-    Rectangle border_l = new Rectangle(0.0f, 0.0f);
-    border_l.setBorderWidthLeft(1.0f);
-    border_l.setBorderWidthBottom(0.0f);
-    border_l.setBorderWidthRight(0.0f);
-    border_l.setBorderWidthTop(1.0f);
-    border_l.setBorderColor(BaseColor.GRAY);
-    Rectangle border_lc = new Rectangle(0.0f, 0.0f);
-    border_lc.setBorderWidthLeft(0.0f);
-    border_lc.setBorderWidthBottom(0.0f);
-    border_lc.setBorderWidthRight(1.0f);
-    border_lc.setBorderWidthTop(1.0f);
-    border_lc.setBorderColor(BaseColor.GRAY);
-    Rectangle border_rc = new Rectangle(0.0f, 0.0f);
-    border_rc.setBorderWidthLeft(0.0f);
-    border_rc.setBorderWidthBottom(0.0f);
-    border_rc.setBorderWidthRight(0.0f);
-    border_rc.setBorderWidthTop(1.0f);
-    border_rc.setBorderColor(BaseColor.GRAY);
-    Rectangle border_r = new Rectangle(0.0f, 0.0f);
-    border_r.setBorderWidthLeft(0.0f);
-    border_r.setBorderWidthBottom(0.0f);
-    border_r.setBorderWidthRight(1.0f);
-    border_r.setBorderWidthTop(1.0f);
-    border_r.setBorderColor(BaseColor.GRAY);
-    Rectangle detail_r = new Rectangle(0.0f, 0.0f);
-    detail_r.setBorderWidthLeft(0.0f);
-    detail_r.setBorderWidthBottom(1.0f);
-    detail_r.setBorderWidthRight(0.0f);
-    detail_r.setBorderWidthTop(0.0f);
-    Document document = new Document(PageSize.A4, 36.0f, 36.0f, 36.0f, 54.0f);
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    try {
-        filepath = this.getFoxyParam("FileUploadPath");
-        filename = filepath + File.separatorChar + this.ordId + ".jpg";
-        File f = new File(filename);
-        if (!f.exists()) {
-            filename = filepath + File.separatorChar + "default.jpg";
-        }
-        Image img = Image.getInstance((String)filename);
-        img.setBorder(1);
-        img.scalePercent(50.0f);
-        PdfWriter writer = PdfWriter.getInstance((Document)document, (OutputStream)baos);
-        writer.setPageEvent((PdfPageEvent)new OrderFormPageUtil());
-        document.open();
-        PdfPTable datatable = new PdfPTable(4);
-        PdfPTable innertable = new PdfPTable(2);
-        PdfPTable toptable = new PdfPTable(2);
-        PdfPTable headertable = new PdfPTable(2);
-        PdfPTable detailtable = new PdfPTable(11);
-        PdfPTable remarktable = new PdfPTable(2);
-        int[] colWidths = new int[]{15, 35, 15, 35};
-        int[] headerColWidths = new int[]{60, 40};
-        headertable.setWidths(headerColWidths);
-        headertable.setWidthPercentage(100.0f);
-        headertable.getDefaultCell().setBorder(0);
-        headertable.getDefaultCell().setHorizontalAlignment(2);
-        headertable.getDefaultCell().setVerticalAlignment(6);
-        int[] topColWidths = new int[]{50, 50};
-        toptable.setWidths(topColWidths);
-        toptable.setWidthPercentage(100.0f);
-        toptable.getDefaultCell().setBorder(0);
-        toptable.getDefaultCell().setFixedHeight(100.0f);
-        toptable.getDefaultCell().setHorizontalAlignment(0);
-        toptable.getDefaultCell().setVerticalAlignment(1);
-        int[] innerColWidths = new int[]{30, 70};
-        innertable.setWidths(innerColWidths);
-        innertable.setWidthPercentage(100.0f);
-        innertable.getDefaultCell().setBorder(0);
-        innertable.getDefaultCell().setHorizontalAlignment(0);
-        innertable.getDefaultCell().setVerticalAlignment(1);
-        datatable.setWidths(colWidths);
-        datatable.setWidthPercentage(100.0f);
-        datatable.getDefaultCell().setPadding(3.0f);
-        datatable.getDefaultCell().setBorderWidth(1.0f);
-        datatable.getDefaultCell().setBorderColor(BaseColor.GRAY);
-        datatable.getDefaultCell().setHorizontalAlignment(0);
-        datatable.getDefaultCell().setVerticalAlignment(1);
-        int[] detailColWidths = new int[]{12, 20, 15, 15, 14, 12, 10, 10, 10, 14, 10};
-        detailtable.setWidths(detailColWidths);
-        detailtable.setWidthPercentage(100.0f);
-        detailtable.getDefaultCell().setPadding(3.0f);
-        detailtable.getDefaultCell().setBorder(0);
-        detailtable.getDefaultCell().setBorderWidthBottom(1.0f);
-        detailtable.getDefaultCell().setHorizontalAlignment(0);
-        detailtable.getDefaultCell().setVerticalAlignment(1);
-        int[] remarkColWidths = new int[]{12, 88};
-        remarktable.setWidths(remarkColWidths);
-        remarktable.setWidthPercentage(100.0f);
-        remarktable.getDefaultCell().setPadding(3.0f);
-        remarktable.getDefaultCell().setBorder(0);
-        remarktable.getDefaultCell().setBorderWidthBottom(1.0f);
-        remarktable.getDefaultCell().setHorizontalAlignment(0);
-        remarktable.getDefaultCell().setVerticalAlignment(1);
-        Session session = HibernateUtil.currentSession();
-        Object tmpDateStr = null;
-        String companyNameFull = ld.getCompanyNameFull(ord.getCnameCode(), 1);
-        headertable.addCell(new Phrase(companyNameFull, font12));
-        tmpstr = "[" + this.companycodelastchar;
-        tmpstr = "".equals(this.origin) || this.origin == null ? tmpstr + "/*] " : tmpstr + "/" + this.origin + "] ";
-        headertable.addCell(new Phrase(tmpstr, font7));
-        cell = new PdfPCell(img, false);
-        cell.setHorizontalAlignment(0);
-        cell.setVerticalAlignment(6);
-        cell.setColspan(1);
-        cell.setBorder(0);
-        toptable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Order Confirmation", font12));
-        cell.setColspan(1);
-        cell.setBorder(0);
-        cell.setVerticalAlignment(4);
-        cell.setHorizontalAlignment(2);
-        toptable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Customer Code", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getCustCode(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Unit Price", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": US$" + ord.getUnitPrice() + "/pc", font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Brand/Division", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getCustBrand() + " / " + ord.getCustDivision(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Merchandiser", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getMerchandiser(), font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Style No", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getStyleCode(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("NEW ORDER", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("/ AMENDMENT / STOCK / CANCEL", font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Our Ref #", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getOrderId(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("DailyCap/worker", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = ord.getDailyCap() != null ? new PdfPCell(new Phrase(": " + ord.getDailyCap() + " dz/cm", font10)) : new PdfPCell(new Phrase(": ", font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Ord Date", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        Date tmpdate = ord.getOrderDate();
-        cell = tmpdate == null ? new PdfPCell(new Phrase(": ", font10)) : new PdfPCell(new Phrase(": " + fmt2.format(tmpdate), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Price Term", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": CMT", font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Description", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getDescription(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Season", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getSeason(), font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Fabric Type", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getFabricType(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Graphic Emb", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        String graphicType = ld.getGraphicTypeDesc(ord.getGraphicTypeCode());
-        cell = new PdfPCell(new Phrase(": " + graphicType, font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Fabric Mill", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getFabricMill(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Colouring", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        String colourType = ld.getColourTypeDesc(ord.getColourTypeCode());
-        cell = new PdfPCell(new Phrase(": " + colourType, font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Wash Type", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getWash(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("Fabrication", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getFabrication(), font10));
-        cell.cloneNonPositionParameters(border_r);
-        cell.setColspan(3);
-        datatable.addCell(cell);
-        border_l.setBorderWidthBottom(1.0f);
-        border_lc.setBorderWidthBottom(1.0f);
-        border_rc.setBorderWidthBottom(1.0f);
-        border_r.setBorderWidthBottom(1.0f);
-        cell = new PdfPCell(new Phrase("Remark (Factory)", font10));
-        cell.cloneNonPositionParameters(border_l);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase(": " + ord.getRemark(), font10));
-        cell.cloneNonPositionParameters(border_lc);
-        cell.setColspan(3);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("", font10));
-        cell.cloneNonPositionParameters(border_rc);
-        datatable.addCell(cell);
-        cell = new PdfPCell(new Phrase("", font10));
-        cell.cloneNonPositionParameters(border_r);
-        datatable.addCell(cell);
-        tmpstr = "from OrderSummary where orderid = '" + this.ordId + "' AND status != 'D' ";
-        if (!"".equals(this.origin) && this.origin != null) {
-            tmpstr = tmpstr + "AND mainFactory IN (SELECT factoryCode from FactoryMast WHERE countryCode = '" + this.origin + "') ";
-        }
-        tmpstr = tmpstr + "order by month, location";
-        List orders = session.createQuery(tmpstr).list();
-        detailtable.addCell(new Phrase("SubRef #", tblHeader));
-        cell = new PdfPCell(new Phrase("Quantity", tblHeader));
-        cell.setHorizontalAlignment(2);
-        cell.setPaddingRight(10.0f);
-        cell.cloneNonPositionParameters(detail_r);
-        detailtable.addCell(cell);
-        detailtable.addCell(new Phrase("Delivery", tblHeader));
-        detailtable.addCell(new Phrase("Fabric Date", tblHeader));
-        detailtable.addCell(new Phrase("Destination", tblHeader));
-        detailtable.addCell(new Phrase("Category", tblHeader));
-        detailtable.addCell(new Phrase("Quota", tblHeader));
-        detailtable.addCell(new Phrase("ITax", tblHeader));
-        detailtable.addCell(new Phrase("Ship By", tblHeader));
-        detailtable.addCell(new Phrase("Factory", tblHeader));
-        detailtable.addCell(new Phrase("Method", tblHeader));
-        datatable.setHeaderRows(1);
-        Category cat = null;
-        String rmkStr = null;
-        Boolean firstRmk = true;
-        for (int i = 0; i < orders.size(); ++i) {
-            OrderSummary ords = (OrderSummary)orders.get(i);
-            detailtable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font8));
-            cell = "PCS".equals(ords.getUnit()) ? new PdfPCell(new Phrase("" + ords.getQtyPcsRounded() + " pcs", font8)) : new PdfPCell(new Phrase("" + ords.getQtyDznRounded() + " dzn", font8));
-            cell.setHorizontalAlignment(2);
-            cell.setPaddingRight(10.0f);
+    public String OrderConfirmationFormByCountryFmt01(Orders ord) {
+        HttpServletResponse resp = (HttpServletResponse) this.ectx.getResponse();
+        ServletOutputStream out = null;
+        PdfPCell cell = null;
+        String filename = null;  //File name to keep for imtermediate file
+        String filepath = null;
+        String tmpstr = null;
+        TreeMap<String, Integer> sortedRmk = null;
+        ListData ld = (ListData) getBean("listData");
+        Date tmpdate;
+
+
+        SimpleDateFormat fmt = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss");
+        SimpleDateFormat fmt2 = new SimpleDateFormat("dd-MMM-yyyy");
+        SimpleDateFormat fmt3 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+        SimpleDateFormat fmt4 = new SimpleDateFormat("yyyMMddHHmmss");
+
+        Font font12 = new Font(Font.FontFamily.HELVETICA, 12);
+        Font font10 = new Font(Font.FontFamily.HELVETICA, 10);
+        Font font8 = new Font(Font.FontFamily.HELVETICA, 8);
+        Font font7 = new Font(Font.FontFamily.HELVETICA, 7);
+
+        Font tblHeader = new Font(Font.FontFamily.HELVETICA, 8);
+
+        Rectangle border_l = new Rectangle(0f, 0f);
+        //border_l.setBorderWidth(3);
+        border_l.setBorderWidthLeft(1f);
+        border_l.setBorderWidthBottom(0f);
+        border_l.setBorderWidthRight(0f);
+        border_l.setBorderWidthTop(1f);
+        border_l.setBorderColor(BaseColor.GRAY);
+
+        Rectangle border_lc = new Rectangle(0f, 0f);
+        border_lc.setBorderWidthLeft(0f);
+        border_lc.setBorderWidthBottom(0f);
+        border_lc.setBorderWidthRight(1f);
+        border_lc.setBorderWidthTop(1f);
+        border_lc.setBorderColor(BaseColor.GRAY);
+
+        Rectangle border_rc = new Rectangle(0f, 0f);
+        border_rc.setBorderWidthLeft(0f);
+        border_rc.setBorderWidthBottom(0f);
+        border_rc.setBorderWidthRight(0f);
+        border_rc.setBorderWidthTop(1f);
+        border_rc.setBorderColor(BaseColor.GRAY);
+
+        Rectangle border_r = new Rectangle(0f, 0f);
+        border_r.setBorderWidthLeft(0f);
+        border_r.setBorderWidthBottom(0f);
+        border_r.setBorderWidthRight(1f);
+        border_r.setBorderWidthTop(1f);
+        border_r.setBorderColor(BaseColor.GRAY);
+
+        Rectangle detail_r = new Rectangle(0f, 0f);
+        detail_r.setBorderWidthLeft(0f);
+        detail_r.setBorderWidthBottom(1f);
+        detail_r.setBorderWidthRight(0f);
+        detail_r.setBorderWidthTop(0f);
+
+
+        Document document = new Document(PageSize.A4, 36, 36, 36, 54);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try {
+            filepath = this.getFoxyParam("FileUploadPath");
+            filename = filepath + File.separatorChar + this.ordId + ".jpg";
+
+            File f = new File(filename);
+            if (f.exists() == false) {
+                filename = filepath + File.separatorChar + "default.jpg";
+            }
+
+
+            Image img = Image.getInstance(filename);
+            img.setBorder(1);
+            img.scalePercent(50);
+
+
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            writer.setPageEvent(new OrderFormPageUtil());
+            document.open();
+
+            /*
+             * Content Here
+             */
+            PdfPTable datatable = new PdfPTable(4);     // Create table with 4 columns
+            PdfPTable innertable = new PdfPTable(2);
+
+            PdfPTable toptable = new PdfPTable(2);
+            PdfPTable headertable = new PdfPTable(2);
+
+            PdfPTable detailtable = new PdfPTable(11);
+            PdfPTable remarktable = new PdfPTable(2); //Table for remarks if any
+            //PdfPTable footertable = new PdfPTable(3);
+
+            int colWidths[] = {15, 35, 15, 35};   // Column width
+
+            int headerColWidths[] = {60, 40};   // Column width
+            headertable.setWidths(headerColWidths);
+            headertable.setWidthPercentage(100); // percentage
+            headertable.getDefaultCell().setBorder(0);
+            headertable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_RIGHT);
+            headertable.getDefaultCell().setVerticalAlignment(Element.ALIGN_BOTTOM);
+
+            int topColWidths[] = {50, 50};   // Column width
+            toptable.setWidths(topColWidths);
+            toptable.setWidthPercentage(100); // percentage
+            toptable.getDefaultCell().setBorder(0);
+            toptable.getDefaultCell().setFixedHeight(100);
+            toptable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            toptable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            int innerColWidths[] = {30, 70};   // Column width
+            innertable.setWidths(innerColWidths);
+            innertable.setWidthPercentage(100); // percentage
+            innertable.getDefaultCell().setBorder(0);
+            innertable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            innertable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            datatable.setWidths(colWidths);
+            datatable.setWidthPercentage(100); // percentage
+            datatable.getDefaultCell().setPadding(3);
+            datatable.getDefaultCell().setBorderWidth(1);
+            datatable.getDefaultCell().setBorderColor(BaseColor.GRAY);
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            datatable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            int detailColWidths[] = {12, 20, 15, 15, 14, 12, 10, 10, 10, 14, 10};   // Column width
+            detailtable.setWidths(detailColWidths);
+            detailtable.setWidthPercentage(100); // percentage
+            detailtable.getDefaultCell().setPadding(3);
+            detailtable.getDefaultCell().setBorder(0);
+            detailtable.getDefaultCell().setBorderWidthBottom(1);
+            detailtable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            detailtable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+
+            int remarkColWidths[] = {12, 88};   // Column width
+            remarktable.setWidths(remarkColWidths);
+            remarktable.setWidthPercentage(100); // percentage
+            remarktable.getDefaultCell().setPadding(3);
+            remarktable.getDefaultCell().setBorder(0);
+            remarktable.getDefaultCell().setBorderWidthBottom(1);
+            remarktable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            remarktable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            // Get data from database
+            Session session = (Session) HibernateUtil.currentSession();
+
+            String tmpDateStr = null;
+            // Populate table with data
+
+            //do not pass in 0 to close hibernate session for Company Name
+            String companyNameFull = ld.getCompanyNameFull(ord.getCnameCode(), 1);
+            headertable.addCell(new Phrase(companyNameFull, font12));
+
+            tmpstr = "[" + companycodelastchar;
+            if ("".equals(this.origin) || this.origin == null) {
+                tmpstr = tmpstr + "/*] ";
+            } else {
+                tmpstr = tmpstr + "/" + this.origin + "] ";
+            }
+
+            headertable.addCell(new Phrase(tmpstr, font7));
+
+
+            cell = new PdfPCell(img, false); //Don't use fix to cell, else image scale would not work
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
+            cell.setColspan(1);
+            cell.setBorder(0);
+            toptable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Order Confirmation", font12));
+            cell.setColspan(1);
+            cell.setBorder(0);
+            cell.setVerticalAlignment(Element.ALIGN_TOP);
+            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            toptable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Customer Code", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getCustCode(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("NEW ORDER", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("/ AMENDMENT / STOCK / CANCEL", font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Brand/Division", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getCustBrand() + " / " + ord.getCustDivision(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Merchandiser", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getMerchandiser(), font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Style No", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getStyleCode(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("DailyCap/worker", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            if (ord.getDailyCap() != null) {
+                cell = new PdfPCell(new Phrase(": " + ord.getDailyCap() + " dz/cm", font10));
+            } else {
+                cell = new PdfPCell(new Phrase(": ", font10));
+            }
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Our Ref #", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getOrderId(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Price Term", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": CMT", font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Ord Date", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            tmpdate = ord.getOrderDate();
+            if (tmpdate == null) {
+                cell = new PdfPCell(new Phrase(": ", font10));
+            } else {
+                cell = new PdfPCell(new Phrase(": " + fmt2.format(tmpdate), font10));
+            }
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Season", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getSeason(), font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Description", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getDescription(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            //cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Graphic Emb", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            //since order table keep Graphic Type code, need to use listdata to get detail/name/desc
+            String graphicType = ld.getGraphicTypeDesc(ord.getGraphicTypeCode());
+            cell = new PdfPCell(new Phrase(": " + graphicType, font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Fabric Type", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabricType(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            //cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Colouring", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            //since order table keep Graphic Type code, need to use listdata to get detail/name/desc
+            String colourType = ld.getColourTypeDesc(ord.getColourTypeCode());
+            cell = new PdfPCell(new Phrase(": " + colourType, font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Fabric Mill", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabricMill(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Wash Type", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getWash(), font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Factory CMT", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFtyCm(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Graphic/EMB Cost", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getGcost(), font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Fabrication", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabrication(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
+            datatable.addCell(cell);
+
+            border_l.setBorderWidthBottom(1f);
+            border_lc.setBorderWidthBottom(1f);
+            border_rc.setBorderWidthBottom(1f);
+            border_r.setBorderWidthBottom(1f);
+
+            cell = new PdfPCell(new Phrase("Remark", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getRemark(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("", font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            //create SQL statement
+            tmpstr = "from OrderSummary where orderid = '" + this.ordId + "' AND status != 'D' ";
+            if ("".equals(this.origin) || this.origin == null) {
+                //dont add any filter to origin column if to select all ordsummary info (dropdown box all)
+            } else {
+                tmpstr = tmpstr + "AND mainFactory IN (SELECT factoryCode from FactoryMast WHERE countryCode = '" + this.origin + "') ";
+            }
+            tmpstr = tmpstr + "order by month, location";
+
+            List orders = session.createQuery(tmpstr).list();
+
+            detailtable.addCell(new Phrase("SubRef #", tblHeader));
+            //Right align col header
+            cell = new PdfPCell(new Phrase("Quantity", tblHeader));
+            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            cell.setPaddingRight(10f);
             cell.cloneNonPositionParameters(detail_r);
             detailtable.addCell(cell);
-            tmpdate = ords.getDelivery();
-            if (tmpdate != null) {
-                detailtable.addCell(new Phrase(fmt2.format(ords.getDelivery()), font8));
-            } else {
-                detailtable.addCell(new Phrase("UNKNOWN", font8));
+
+            detailtable.addCell(new Phrase("Delivery", tblHeader));
+            detailtable.addCell(new Phrase("Fabric Date", tblHeader));
+            detailtable.addCell(new Phrase("Destination", tblHeader));
+            detailtable.addCell(new Phrase("Category", tblHeader));
+            detailtable.addCell(new Phrase("Quota", tblHeader));
+            detailtable.addCell(new Phrase("ITax", tblHeader));
+            detailtable.addCell(new Phrase("Ship By", tblHeader));
+            detailtable.addCell(new Phrase("Factory", tblHeader));
+            detailtable.addCell(new Phrase("Method", tblHeader));
+
+            datatable.setHeaderRows(1); // this is the end of the table header
+
+
+            Category cat = null;
+            String rmkStr = null;
+            Boolean firstRmk = true;
+            for (int i = 0; i < orders.size(); i++) {
+                OrderSummary ords = (OrderSummary) orders.get(i);
+                detailtable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font8));
+
+                //Dynamic quantity column
+                if ("PCS".equals(ords.getUnit())) {
+                    cell = new PdfPCell(new Phrase(ords.getQtyPcsRounded() + " pcs", font8));
+                } else {
+                    cell = new PdfPCell(new Phrase(ords.getQtyDznRounded() + " dzn", font8));
+                }
+                cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                cell.setPaddingRight(10f);
+                cell.cloneNonPositionParameters(detail_r);
+                detailtable.addCell(cell);
+
+                tmpdate = ords.getDelivery();
+                if (tmpdate != null) {
+                    detailtable.addCell(new Phrase(fmt2.format(ords.getDelivery()), font8));
+                } else {
+                    detailtable.addCell(new Phrase("UNKNOWN", font8));
+                }
+                tmpdate = ords.getFabricDeliveryDate();
+                if (tmpdate != null) {
+                    detailtable.addCell(new Phrase(fmt2.format(tmpdate), font8));
+                } else {
+                    detailtable.addCell(new Phrase(" ", font8));
+                }
+
+                detailtable.addCell(new Phrase(ld.getDestinationDesc(ords.getDestination(), 1), font8));
+                cat = ld.getCategory(ords.getCatId(), 1);
+                if (cat != null) {
+                    detailtable.addCell(new Phrase(cat.getCategory(), font8));
+                } else {
+                    detailtable.addCell(new Phrase("Unkown", font8));
+                }
+                detailtable.addCell(new Phrase(ords.getQuota(), font8));
+                detailtable.addCell(new Phrase(ords.getImportTax(), font8));
+                detailtable.addCell(new Phrase(ords.getShip(), font8));
+                detailtable.addCell(new Phrase(ld.getFactoryNameShort(ords.getMainFactory()), font8));
+                detailtable.addCell(new Phrase(ords.getOrderMethod(), font8));
+
+                //Add in to display remark if no empty or null
+                rmkStr = ords.getRemark();
+                if (rmkStr != null) {
+                    if (rmkStr.length() > 0) {
+                        if (firstRmk) {
+                            descAlpha da = new descAlpha();
+                            sortedRmk = new TreeMap(da);
+                            firstRmk = false;
+                            remarktable.addCell(new Phrase("SubRef#", tblHeader));
+                            remarktable.addCell(new Phrase("Remark", tblHeader));
+                        }
+                        if (ords.getUpdUsrId() == null) {
+                            sortedRmk.put(fmt4.format(ords.getInsTime()), i);
+                        } else {
+                            sortedRmk.put(fmt4.format(ords.getUpdTime()), i);
+                        }
+                    }
+                }
+            }//End for inner loop
+
+            if (sortedRmk != null) {
+                if (sortedRmk.size() > 0) {
+                    Set st = sortedRmk.entrySet();
+                    Iterator it = st.iterator();
+                    Integer idx;
+                    while (it.hasNext()) {
+                        Map.Entry me = (Map.Entry) it.next();
+                        idx = (Integer) me.getValue();
+                        OrderSummary ords = (OrderSummary) orders.get(idx);
+
+                        remarktable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font10));
+                        remarktable.addCell(new Phrase(ords.getRemark(), font8));
+                    }
+                }
             }
-            tmpdate = ords.getFabricDeliveryDate();
-            if (tmpdate != null) {
-                detailtable.addCell(new Phrase(fmt2.format(tmpdate), font8));
-            } else {
-                detailtable.addCell(new Phrase(" ", font8));
+
+            document.add(headertable);
+            document.add(new Paragraph(" "));
+            document.add(toptable);
+            document.add(new Paragraph(" "));
+            document.add(datatable);
+            document.add(new Paragraph(" "));
+            document.add(detailtable);
+            if (firstRmk == false) {
+                document.add(new Paragraph(" "));
+                document.add(remarktable);
             }
-            detailtable.addCell(new Phrase(ld.getDestinationDesc(ords.getDestination(), 1), font8));
-            cat = ld.getCategory(ords.getCatId(), 1);
-            if (cat != null) {
-                detailtable.addCell(new Phrase(cat.getCategory(), font8));
-            } else {
-                detailtable.addCell(new Phrase("Unkown", font8));
-            }
-            detailtable.addCell(new Phrase(ords.getQuota(), font8));
-            detailtable.addCell(new Phrase(ords.getImportTax(), font8));
-            detailtable.addCell(new Phrase(ords.getShip(), font8));
-            detailtable.addCell(new Phrase(ld.getFactoryNameShort(ords.getMainFactory()), font8));
-            detailtable.addCell(new Phrase(ords.getOrderMethod(), font8));
-            rmkStr = ords.getRemark();
-            if (rmkStr == null || rmkStr.length() <= 0) continue;
-            if (firstRmk.booleanValue()) {
-                descAlpha da = new descAlpha();
-                sortedRmk = new TreeMap<String, Integer>((Comparator<String>)da);
-                firstRmk = false;
-                remarktable.addCell(new Phrase("SubRef#", tblHeader));
-                remarktable.addCell(new Phrase("Remark", tblHeader));
-            }
-            if (ords.getUpdUsrId() == null) {
-                sortedRmk.put(fmt4.format(ords.getInsTime()), i);
-                continue;
-            }
-            sortedRmk.put(fmt4.format(ords.getUpdTime()), i);
+            document.add(new Paragraph(" "));
+            document.close();
+        } catch (DocumentException e) {
+            //e.printStackTrace();
+        } catch (Exception e) {
+            //e.printStackTrace();
         }
-        if (sortedRmk != null && sortedRmk.size() > 0) {
-            Set<Entry<String, Integer>> st = sortedRmk.entrySet();
-            for (Map.Entry me : st) {
-                Integer idx = (Integer)me.getValue();
-                OrderSummary ords = (OrderSummary)orders.get(idx);
-                remarktable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font10));
-                remarktable.addCell(new Phrase(ords.getRemark(), font8));
-            }
-        }
-        document.add((Element)headertable);
-        document.add((Element)new Paragraph(" "));
-        document.add((Element)toptable);
-        document.add((Element)new Paragraph(" "));
-        document.add((Element)datatable);
-        document.add((Element)new Paragraph(" "));
-        document.add((Element)detailtable);
-        if (!firstRmk.booleanValue()) {
-            document.add((Element)new Paragraph(" "));
-            document.add((Element)remarktable);
-        }
-        document.add((Element)new Paragraph(" "));
-        document.close();
-    }
-    catch (DocumentException e) {
-    }
-    catch (Exception e) {
-        // empty catch block
-    }
         resp.setContentType("application/pdf");
 
         String filestr;
@@ -626,281 +771,396 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
     }
 
     public String OrderConfirmationFormByCountryFmt02(Orders ord) {
-        HttpServletResponse resp = (HttpServletResponse)this.ectx.getResponse();
+        HttpServletResponse resp = (HttpServletResponse) this.ectx.getResponse();
         ServletOutputStream out = null;
         PdfPCell cell = null;
-        String filename = null;
+        String filename = null;  //File name to keep for imtermediate file
         String filepath = null;
         String tmpstr = null;
         TreeMap<String, Integer> sortedRmk = null;
-        ListData ld = (ListData)this.getBean("listData");
+        ListData ld = (ListData) getBean("listData");
+        Date tmpdate;
+
+
         SimpleDateFormat fmt = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss");
         SimpleDateFormat fmt2 = new SimpleDateFormat("dd-MMM-yyyy");
         SimpleDateFormat fmt3 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
         SimpleDateFormat fmt4 = new SimpleDateFormat("yyyMMddHHmmss");
-        Font font12 = new Font(Font.FontFamily.HELVETICA, 12.0f);
-        Font font10 = new Font(Font.FontFamily.HELVETICA, 10.0f);
-        Font font8 = new Font(Font.FontFamily.HELVETICA, 8.0f);
-        Font font7 = new Font(Font.FontFamily.HELVETICA, 7.0f);
-        Font tblHeader = new Font(Font.FontFamily.HELVETICA, 8.0f);
-        Rectangle border_l = new Rectangle(0.0f, 0.0f);
-        border_l.setBorderWidthLeft(1.0f);
-        border_l.setBorderWidthBottom(0.0f);
-        border_l.setBorderWidthRight(0.0f);
-        border_l.setBorderWidthTop(1.0f);
+
+        Font font12 = new Font(Font.FontFamily.HELVETICA, 12);
+        Font font10 = new Font(Font.FontFamily.HELVETICA, 10);
+        Font font8 = new Font(Font.FontFamily.HELVETICA, 8);
+        Font font7 = new Font(Font.FontFamily.HELVETICA, 7);
+
+        Font tblHeader = new Font(Font.FontFamily.HELVETICA, 8);
+
+        Rectangle border_l = new Rectangle(0f, 0f);
+        border_l.setBorderWidthLeft(1f);
+        border_l.setBorderWidthBottom(0f);
+        border_l.setBorderWidthRight(0f);
+        border_l.setBorderWidthTop(1f);
         border_l.setBorderColor(BaseColor.GRAY);
-        Rectangle border_lc = new Rectangle(0.0f, 0.0f);
-        border_lc.setBorderWidthLeft(0.0f);
-        border_lc.setBorderWidthBottom(0.0f);
-        border_lc.setBorderWidthRight(1.0f);
-        border_lc.setBorderWidthTop(1.0f);
+
+        Rectangle border_lc = new Rectangle(0f, 0f);
+        border_lc.setBorderWidthLeft(0f);
+        border_lc.setBorderWidthBottom(0f);
+        border_lc.setBorderWidthRight(1f);
+        border_lc.setBorderWidthTop(1f);
         border_lc.setBorderColor(BaseColor.GRAY);
-        Rectangle border_rc = new Rectangle(0.0f, 0.0f);
-        border_rc.setBorderWidthLeft(0.0f);
-        border_rc.setBorderWidthBottom(0.0f);
-        border_rc.setBorderWidthRight(0.0f);
-        border_rc.setBorderWidthTop(1.0f);
+
+        Rectangle border_rc = new Rectangle(0f, 0f);
+        border_rc.setBorderWidthLeft(0f);
+        border_rc.setBorderWidthBottom(0f);
+        border_rc.setBorderWidthRight(0f);
+        border_rc.setBorderWidthTop(1f);
         border_rc.setBorderColor(BaseColor.GRAY);
-        Rectangle border_r = new Rectangle(0.0f, 0.0f);
-        border_r.setBorderWidthLeft(0.0f);
-        border_r.setBorderWidthBottom(0.0f);
-        border_r.setBorderWidthRight(1.0f);
-        border_r.setBorderWidthTop(1.0f);
+
+        Rectangle border_r = new Rectangle(0f, 0f);
+        border_r.setBorderWidthLeft(0f);
+        border_r.setBorderWidthBottom(0f);
+        border_r.setBorderWidthRight(1f);
+        border_r.setBorderWidthTop(1f);
         border_r.setBorderColor(BaseColor.GRAY);
-        Rectangle detail_r = new Rectangle(0.0f, 0.0f);
-        detail_r.setBorderWidthLeft(0.0f);
-        detail_r.setBorderWidthBottom(1.0f);
-        detail_r.setBorderWidthRight(0.0f);
-        detail_r.setBorderWidthTop(0.0f);
-        Document document = new Document(PageSize.A4, 36.0f, 36.0f, 36.0f, 54.0f);
+
+        Rectangle detail_r = new Rectangle(0f, 0f);
+        detail_r.setBorderWidthLeft(0f);
+        detail_r.setBorderWidthBottom(1f);
+        detail_r.setBorderWidthRight(0f);
+        detail_r.setBorderWidthTop(0f);
+
+
+        Document document = new Document(PageSize.A4, 36, 36, 36, 54);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
         try {
             filepath = this.getFoxyParam("FileUploadPath");
             filename = filepath + File.separatorChar + this.ordId + ".jpg";
+
             File f = new File(filename);
-            if (!f.exists()) {
+            if (f.exists() == false) {
                 filename = filepath + File.separatorChar + "default.jpg";
             }
-            Image img = Image.getInstance((String)filename);
+
+
+            Image img = Image.getInstance(filename);
             img.setBorder(1);
-            img.scalePercent(50.0f);
-            PdfWriter writer = PdfWriter.getInstance((Document)document, (OutputStream)baos);
-            writer.setPageEvent((PdfPageEvent)new OrderFormPageUtil());
+            img.scalePercent(50);
+
+
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            writer.setPageEvent(new OrderFormPageUtil());
             document.open();
-            PdfPTable datatable = new PdfPTable(4);
+
+
+            /*
+             * Content Here
+             */
+            PdfPTable datatable = new PdfPTable(4);     // Create table with 4 columns
             PdfPTable innertable = new PdfPTable(2);
+
             PdfPTable toptable = new PdfPTable(2);
             PdfPTable headertable = new PdfPTable(2);
+
             PdfPTable detailtable = new PdfPTable(11);
-            PdfPTable remarktable = new PdfPTable(2);
-            int[] colWidths = new int[]{15, 35, 15, 35};
-            int[] headerColWidths = new int[]{60, 40};
+            PdfPTable remarktable = new PdfPTable(2); //Table for remarks if any
+
+            int colWidths[] = {15, 35, 15, 35};   // Column width
+
+            int headerColWidths[] = {60, 40};   // Column width
             headertable.setWidths(headerColWidths);
-            headertable.setWidthPercentage(100.0f);
+            headertable.setWidthPercentage(100); // percentage
             headertable.getDefaultCell().setBorder(0);
-            headertable.getDefaultCell().setHorizontalAlignment(2);
-            headertable.getDefaultCell().setVerticalAlignment(6);
-            int[] topColWidths = new int[]{50, 50};
+            headertable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_RIGHT);
+            headertable.getDefaultCell().setVerticalAlignment(Element.ALIGN_BOTTOM);
+
+            int topColWidths[] = {50, 50};   // Column width
             toptable.setWidths(topColWidths);
-            toptable.setWidthPercentage(100.0f);
+            toptable.setWidthPercentage(100); // percentage
             toptable.getDefaultCell().setBorder(0);
-            toptable.getDefaultCell().setFixedHeight(100.0f);
-            toptable.getDefaultCell().setHorizontalAlignment(0);
-            toptable.getDefaultCell().setVerticalAlignment(1);
-            int[] innerColWidths = new int[]{30, 70};
+            toptable.getDefaultCell().setFixedHeight(100);
+            toptable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            toptable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            int innerColWidths[] = {30, 70};   // Column width
             innertable.setWidths(innerColWidths);
-            innertable.setWidthPercentage(100.0f);
+            innertable.setWidthPercentage(100); // percentage
             innertable.getDefaultCell().setBorder(0);
-            innertable.getDefaultCell().setHorizontalAlignment(0);
-            innertable.getDefaultCell().setVerticalAlignment(1);
+            innertable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            innertable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
             datatable.setWidths(colWidths);
-            datatable.setWidthPercentage(100.0f);
-            datatable.getDefaultCell().setPadding(3.0f);
-            datatable.getDefaultCell().setBorderWidth(1.0f);
+            datatable.setWidthPercentage(100); // percentage
+            datatable.getDefaultCell().setPadding(3);
+            datatable.getDefaultCell().setBorderWidth(1);
             datatable.getDefaultCell().setBorderColor(BaseColor.GRAY);
-            datatable.getDefaultCell().setHorizontalAlignment(0);
-            datatable.getDefaultCell().setVerticalAlignment(1);
-            int[] detailColWidths = new int[]{12, 20, 15, 15, 14, 12, 10, 10, 10, 14, 10};
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            datatable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            int detailColWidths[] = {12, 20, 15, 15, 14, 12, 10, 10, 10, 14, 10};   // Column width
             detailtable.setWidths(detailColWidths);
-            detailtable.setWidthPercentage(100.0f);
-            detailtable.getDefaultCell().setPadding(3.0f);
+            detailtable.setWidthPercentage(100); // percentage
+            detailtable.getDefaultCell().setPadding(3);
             detailtable.getDefaultCell().setBorder(0);
-            detailtable.getDefaultCell().setBorderWidthBottom(1.0f);
-            detailtable.getDefaultCell().setHorizontalAlignment(0);
-            detailtable.getDefaultCell().setVerticalAlignment(1);
-            int[] remarkColWidths = new int[]{12, 88};
+            detailtable.getDefaultCell().setBorderWidthBottom(1);
+            detailtable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            detailtable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+
+            int remarkColWidths[] = {12, 88};   // Column width
             remarktable.setWidths(remarkColWidths);
-            remarktable.setWidthPercentage(100.0f);
-            remarktable.getDefaultCell().setPadding(3.0f);
+            remarktable.setWidthPercentage(100); // percentage
+            remarktable.getDefaultCell().setPadding(3);
             remarktable.getDefaultCell().setBorder(0);
-            remarktable.getDefaultCell().setBorderWidthBottom(1.0f);
-            remarktable.getDefaultCell().setHorizontalAlignment(0);
-            remarktable.getDefaultCell().setVerticalAlignment(1);
-            Session session = HibernateUtil.currentSession();
+            remarktable.getDefaultCell().setBorderWidthBottom(1);
+            remarktable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            remarktable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            // Get data from database
+            Session session = (Session) HibernateUtil.currentSession();
+
             headertable.addCell(new Phrase("Order Confirmation", font12));
-            Object tmpDateStr = null;
-            tmpstr = "[" + this.companycodelastchar;
-            tmpstr = "".equals(this.origin) || this.origin == null ? tmpstr + "/*] " : tmpstr + "/" + this.origin + "] ";
+
+            String tmpDateStr = null;
+            // Populate table with data
+
+            tmpstr = "[" + companycodelastchar;
+            if ("".equals(this.origin) || this.origin == null) {
+                tmpstr = tmpstr + "/*] ";
+            } else {
+                tmpstr = tmpstr + "/" + this.origin + "] ";
+            }
             headertable.addCell(new Phrase(tmpstr, font7));
+
+            //do not pass in 0 to close hibernate session for Company Name
             String companyNameFull = ld.getCompanyNameFull(ord.getCnameCode(), 1);
             cell = new PdfPCell(new Phrase(companyNameFull, font12));
+
             cell.setColspan(1);
             cell.setBorder(0);
-            cell.setVerticalAlignment(6);
+            cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
             toptable.addCell(cell);
-            cell = new PdfPCell(img, false);
-            cell.setHorizontalAlignment(2);
-            cell.setVerticalAlignment(6);
+
+            cell = new PdfPCell(img, false); //Don't use fix to cell, else image scale would not work
+            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
             cell.setColspan(1);
             cell.setBorder(0);
             toptable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Customer Code", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase(": " + ord.getCustCode(), font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Merchandiser", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase(": " + ord.getMerchandiser(), font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("Brand/Division", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase(": " + ord.getCustBrand() + " / " + ord.getCustDivision(), font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Unit Price", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": US$" + ord.getUnitPrice() + "/pc", font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Style No", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getStyleCode(), font10));
-            cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("NEW ORDER", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("/ AMENDMENT / STOCK / CANCEL", font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Our Ref #", font10));
+
+            cell = new PdfPCell(new Phrase("Style No", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getOrderId(), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getStyleCode(), font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("DailyCap/worker", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
-            cell = ord.getDailyCap() != null ? new PdfPCell(new Phrase(": " + ord.getDailyCap() + " dz/cm", font10)) : new PdfPCell(new Phrase(": ", font10));
+
+            if (ord.getDailyCap() != null) {
+                cell = new PdfPCell(new Phrase(": " + ord.getDailyCap() + " dz/cm", font10));
+            } else {
+                cell = new PdfPCell(new Phrase(": ", font10));
+            }
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Ord Date", font10));
+
+
+            cell = new PdfPCell(new Phrase("Our Ref #", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            Date tmpdate = ord.getOrderDate();
-            cell = tmpdate == null ? new PdfPCell(new Phrase(": ", font10)) : new PdfPCell(new Phrase(": " + fmt2.format(tmpdate), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getOrderId(), font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Price Term", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase(": CMT", font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Description", font10));
+
+            cell = new PdfPCell(new Phrase("Ord Date", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getDescription(), font10));
+
+            tmpdate = ord.getOrderDate();
+            if (tmpdate == null) {
+                cell = new PdfPCell(new Phrase(": ", font10));
+            } else {
+                cell = new PdfPCell(new Phrase(": " + fmt2.format(tmpdate), font10));
+            }
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Season", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase(": " + ord.getSeason(), font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Fabric Type", font10));
+
+            cell = new PdfPCell(new Phrase("Description", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getFabricType(), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getDescription(), font10));
             cell.cloneNonPositionParameters(border_lc);
+            //cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Graphic Emb", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
+            //since order table keep Graphic Type code, need to use listdata to get detail/name/desc
             String graphicType = ld.getGraphicTypeDesc(ord.getGraphicTypeCode());
             cell = new PdfPCell(new Phrase(": " + graphicType, font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Fabrication", font10));
+
+            cell = new PdfPCell(new Phrase("Fabric Type", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getFabrication(), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabricType(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            cell.setColspan(3);
+            //cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Fabric Mill", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getFabricMill(), font10));
-            cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Colouring", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
+            //since order table keep Graphic Type code, need to use listdata to get detail/name/desc
             String colourType = ld.getColourTypeDesc(ord.getColourTypeCode());
             cell = new PdfPCell(new Phrase(": " + colourType, font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Wash Type", font10));
+
+            cell = new PdfPCell(new Phrase("Fabrication", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + (null != ord.getWash() ? ord.getWash() : ""), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabrication(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Fabric Mill", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabricMill(), font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("", font10));
+
+            cell = new PdfPCell(new Phrase("Wash Type", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("", font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getWash(), font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            border_l.setBorderWidthBottom(1.0f);
-            border_lc.setBorderWidthBottom(1.0f);
-            border_rc.setBorderWidthBottom(1.0f);
-            border_r.setBorderWidthBottom(1.0f);
-            cell = new PdfPCell(new Phrase("Remark (Factory)", font10));
+
+            cell = new PdfPCell(new Phrase("Factory CMT", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFtyCm(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Graphic/EMB Cost", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getGcost(), font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            border_l.setBorderWidthBottom(1f);
+            border_lc.setBorderWidthBottom(1f);
+            border_rc.setBorderWidthBottom(1f);
+            border_r.setBorderWidthBottom(1f);
+
+            cell = new PdfPCell(new Phrase("Remark", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase(": " + ord.getRemark(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            cell.setColspan(3);
+            cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
             datatable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
+
+            //create SQL statement
             tmpstr = "from OrderSummary where orderid = '" + this.ordId + "' AND status != 'D' ";
-            if (!"".equals(this.origin) && this.origin != null) {
-                tmpstr = tmpstr + "AND location = '" + this.origin + "' ";
+            if ("".equals(this.origin) || this.origin == null) {
+                //dont add any filter to origin column if to select all ordsummary info (dropdown box all)
+            } else {
+                tmpstr = tmpstr + "AND origin = '" + this.origin + "' ";
             }
             tmpstr = tmpstr + "order by month, location";
+
             List orders = session.createQuery(tmpstr).list();
+
             detailtable.addCell(new Phrase("SubRef #", tblHeader));
+            //Right align col header
             cell = new PdfPCell(new Phrase("Quantity", tblHeader));
-            cell.setHorizontalAlignment(2);
-            cell.setPaddingRight(10.0f);
+            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            cell.setPaddingRight(10f);
             cell.cloneNonPositionParameters(detail_r);
             detailtable.addCell(cell);
+
             detailtable.addCell(new Phrase("Delivery", tblHeader));
             detailtable.addCell(new Phrase("Fabric Date", tblHeader));
             detailtable.addCell(new Phrase("Destination", tblHeader));
@@ -910,18 +1170,28 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
             detailtable.addCell(new Phrase("Ship By", tblHeader));
             detailtable.addCell(new Phrase("Factory", tblHeader));
             detailtable.addCell(new Phrase("Method", tblHeader));
-            datatable.setHeaderRows(1);
+
+            datatable.setHeaderRows(1); // this is the end of the table header
+
+
             Category cat = null;
             String rmkStr = null;
             Boolean firstRmk = true;
-            for (int i = 0; i < orders.size(); ++i) {
-                OrderSummary ords = (OrderSummary)orders.get(i);
+            for (int i = 0; i < orders.size(); i++) {
+                OrderSummary ords = (OrderSummary) orders.get(i);
                 detailtable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font8));
-                cell = "PCS".equals(ords.getUnit()) ? new PdfPCell(new Phrase("" + ords.getQtyPcsRounded() + " pcs", font8)) : new PdfPCell(new Phrase("" + ords.getQtyDznRounded() + " dzn", font8));
-                cell.setHorizontalAlignment(2);
-                cell.setPaddingRight(10.0f);
+
+                //Dynamic quantity column
+                if ("PCS".equals(ords.getUnit())) {
+                    cell = new PdfPCell(new Phrase(ords.getQtyPcsRounded() + " pcs", font8));
+                } else {
+                    cell = new PdfPCell(new Phrase(ords.getQtyDznRounded() + " dzn", font8));
+                }
+                cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                cell.setPaddingRight(10f);
                 cell.cloneNonPositionParameters(detail_r);
                 detailtable.addCell(cell);
+
                 tmpdate = ords.getDelivery();
                 if (tmpdate != null) {
                     detailtable.addCell(new Phrase(fmt2.format(ords.getDelivery()), font8));
@@ -934,6 +1204,7 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                 } else {
                     detailtable.addCell(new Phrase(" ", font8));
                 }
+
                 detailtable.addCell(new Phrase(ld.getDestinationDesc(ords.getDestination(), 1), font8));
                 cat = ld.getCategory(ords.getCatId(), 1);
                 if (cat != null) {
@@ -946,50 +1217,62 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                 detailtable.addCell(new Phrase(ords.getShip(), font8));
                 detailtable.addCell(new Phrase(ld.getFactoryNameShort(ords.getMainFactory()), font8));
                 detailtable.addCell(new Phrase(ords.getOrderMethod(), font8));
+
+                //Add in to display remark if no empty or null
                 rmkStr = ords.getRemark();
-                if (rmkStr == null || rmkStr.length() <= 0) continue;
-                if (firstRmk.booleanValue()) {
-                    descAlpha da = new descAlpha();
-                    sortedRmk = new TreeMap<String, Integer>((Comparator<String>)da);
-                    firstRmk = false;
-                    remarktable.addCell(new Phrase("SubRef#", tblHeader));
-                    remarktable.addCell(new Phrase("Remark", tblHeader));
+                if (rmkStr != null) {
+                    if (rmkStr.length() > 0) {
+                        if (firstRmk) {
+                            descAlpha da = new descAlpha();
+                            sortedRmk = new TreeMap(da);
+                            firstRmk = false;
+                            remarktable.addCell(new Phrase("SubRef#", tblHeader));
+                            remarktable.addCell(new Phrase("Remark", tblHeader));
+                        }
+                        if (ords.getUpdUsrId() == null) {
+                            sortedRmk.put(fmt4.format(ords.getInsTime()), i);
+                        } else {
+                            sortedRmk.put(fmt4.format(ords.getUpdTime()), i);
+                        }
+                    }
                 }
-                if (ords.getUpdUsrId() == null) {
-                    sortedRmk.put(fmt4.format(ords.getInsTime()), i);
-                    continue;
+            }//End for inner loop
+
+            if (sortedRmk != null) {
+                if (sortedRmk.size() > 0) {
+                    Set st = sortedRmk.entrySet();
+                    Iterator it = st.iterator();
+                    Integer idx;
+                    while (it.hasNext()) {
+                        Map.Entry me = (Map.Entry) it.next();
+                        idx = (Integer) me.getValue();
+                        OrderSummary ords = (OrderSummary) orders.get(idx);
+
+                        remarktable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font10));
+                        remarktable.addCell(new Phrase(ords.getRemark(), font8));
+                    }
                 }
-                sortedRmk.put(fmt4.format(ords.getUpdTime()), i);
             }
-            if (sortedRmk != null && sortedRmk.size() > 0) {
-                Set<Entry<String, Integer>> st = sortedRmk.entrySet();
-                for (Map.Entry me : st) {
-                    Integer idx = (Integer)me.getValue();
-                    OrderSummary ords = (OrderSummary)orders.get(idx);
-                    remarktable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font10));
-                    remarktable.addCell(new Phrase(ords.getRemark(), font8));
-                }
+
+            document.add(headertable);
+            document.add(new Paragraph(" "));
+            document.add(toptable);
+            document.add(new Paragraph(" "));
+            document.add(datatable);
+            document.add(new Paragraph(" "));
+            document.add(detailtable);
+            if (firstRmk == false) {
+                document.add(new Paragraph(" "));
+                document.add(remarktable);
             }
-            document.add((Element)headertable);
-            document.add((Element)new Paragraph(" "));
-            document.add((Element)toptable);
-            document.add((Element)new Paragraph(" "));
-            document.add((Element)datatable);
-            document.add((Element)new Paragraph(" "));
-            document.add((Element)detailtable);
-            if (!firstRmk.booleanValue()) {
-                document.add((Element)new Paragraph(" "));
-                document.add((Element)remarktable);
-            }
-            document.add((Element)new Paragraph(" "));
+            document.add(new Paragraph(" "));
             document.close();
+        } catch (DocumentException e) {
+            //e.printStackTrace();
+        } catch (Exception e) {
+            //e.printStackTrace();
         }
-        catch (DocumentException e) {
-            e.printStackTrace();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }        resp.setContentType("application/pdf");
+        resp.setContentType("application/pdf");
 
         String filestr;
         if ("".equals(this.origin) || this.origin == null) {
@@ -1016,354 +1299,408 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
     }
 
     public String OrderConfirmationFormByCountryFmt03(Orders ord) {
-        HttpServletResponse resp = (HttpServletResponse)this.ectx.getResponse();
+        HttpServletResponse resp = (HttpServletResponse) this.ectx.getResponse();
         ServletOutputStream out = null;
         PdfPCell cell = null;
-        String filename = null;
+        String filename = null;  //File name to keep for imtermediate file
         String filepath = null;
-        TreeMap<String, Integer> sortedRmk = null;
-        ListData ld = (ListData)this.getBean("listData");
         String tmpstr = null;
+        TreeMap<String, Integer> sortedRmk = null;
+        ListData ld = (ListData) getBean("listData");
+        Date tmpdate;
+
+
         SimpleDateFormat fmt = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss");
         SimpleDateFormat fmt2 = new SimpleDateFormat("dd-MMM-yyyy");
         SimpleDateFormat fmt3 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
         SimpleDateFormat fmt4 = new SimpleDateFormat("yyyMMddHHmmss");
-        Date dNow = new Date();
-        Font font18 = new Font(Font.FontFamily.HELVETICA, 18.0f);
-        Font font14 = new Font(Font.FontFamily.HELVETICA, 14.0f);
-        Font font16 = new Font(Font.FontFamily.HELVETICA, 16.0f);
-        Font font12 = new Font(Font.FontFamily.HELVETICA, 12.0f);
-        Font font10 = new Font(Font.FontFamily.HELVETICA, 10.0f);
-        Font font8 = new Font(Font.FontFamily.HELVETICA, 8.0f);
-        Font font7 = new Font(Font.FontFamily.HELVETICA, 7.0f);
-        Font font6 = new Font(Font.FontFamily.HELVETICA, 6.0f);
-        Font tblHeader = new Font(Font.FontFamily.HELVETICA, 8.0f);
-        Font tblBody = new Font(Font.FontFamily.HELVETICA, 8.0f);
-        Rectangle border_l = new Rectangle(0.0f, 0.0f);
-        border_l.setBorderWidthLeft(1.0f);
-        border_l.setBorderWidthBottom(0.0f);
-        border_l.setBorderWidthRight(0.0f);
-        border_l.setBorderWidthTop(1.0f);
+
+        Font font12 = new Font(Font.FontFamily.HELVETICA, 12);
+        Font font10 = new Font(Font.FontFamily.HELVETICA, 10);
+        Font font8 = new Font(Font.FontFamily.HELVETICA, 8);
+        Font font7 = new Font(Font.FontFamily.HELVETICA, 7);
+
+        Font tblHeader = new Font(Font.FontFamily.HELVETICA, 8);
+
+        Rectangle border_l = new Rectangle(0f, 0f);
+        border_l.setBorderWidthLeft(1f);
+        border_l.setBorderWidthBottom(0f);
+        border_l.setBorderWidthRight(0f);
+        border_l.setBorderWidthTop(1f);
         border_l.setBorderColor(BaseColor.GRAY);
-        Rectangle border_lc = new Rectangle(0.0f, 0.0f);
-        border_lc.setBorderWidthLeft(0.0f);
-        border_lc.setBorderWidthBottom(0.0f);
-        border_lc.setBorderWidthRight(1.0f);
-        border_lc.setBorderWidthTop(1.0f);
+
+        Rectangle border_lb = new Rectangle(0f, 0f);
+        border_lb.setBorderWidthLeft(1f);
+        border_lb.setBorderWidthBottom(1f);
+        border_lb.setBorderWidthRight(0f);
+        border_lb.setBorderWidthTop(1f);
+        border_lb.setBorderColor(BaseColor.GRAY);
+
+        Rectangle border_lc = new Rectangle(0f, 0f);
+        border_lc.setBorderWidthLeft(0f);
+        border_lc.setBorderWidthBottom(0f);
+        border_lc.setBorderWidthRight(1f);
+        border_lc.setBorderWidthTop(1f);
         border_lc.setBorderColor(BaseColor.GRAY);
-        Rectangle border_rc = new Rectangle(0.0f, 0.0f);
-        border_rc.setBorderWidthLeft(0.0f);
-        border_rc.setBorderWidthBottom(0.0f);
-        border_rc.setBorderWidthRight(0.0f);
-        border_rc.setBorderWidthTop(1.0f);
+
+        Rectangle border_lbc = new Rectangle(0f, 0f);
+        border_lbc.setBorderWidthLeft(0f);
+        border_lbc.setBorderWidthBottom(1f);
+        border_lbc.setBorderWidthRight(1f);
+        border_lbc.setBorderWidthTop(1f);
+        border_lbc.setBorderColor(BaseColor.GRAY);
+
+        Rectangle border_rc = new Rectangle(0f, 0f);
+        border_rc.setBorderWidthLeft(0f);
+        border_rc.setBorderWidthBottom(0f);
+        border_rc.setBorderWidthRight(0f);
+        border_rc.setBorderWidthTop(1f);
         border_rc.setBorderColor(BaseColor.GRAY);
-        Rectangle border_r = new Rectangle(0.0f, 0.0f);
-        border_r.setBorderWidthLeft(0.0f);
-        border_r.setBorderWidthBottom(0.0f);
-        border_r.setBorderWidthRight(1.0f);
-        border_r.setBorderWidthTop(1.0f);
+
+        Rectangle border_r = new Rectangle(0f, 0f);
+        border_r.setBorderWidthLeft(0f);
+        border_r.setBorderWidthBottom(0f);
+        border_r.setBorderWidthRight(1f);
+        border_r.setBorderWidthTop(1f);
         border_r.setBorderColor(BaseColor.GRAY);
-        Rectangle detail_r = new Rectangle(0.0f, 0.0f);
-        detail_r.setBorderWidthLeft(0.0f);
-        detail_r.setBorderWidthBottom(1.0f);
-        detail_r.setBorderWidthRight(0.0f);
-        detail_r.setBorderWidthTop(0.0f);
-        Document document = new Document(PageSize.A4, 36.0f, 36.0f, 36.0f, 54.0f);
+
+        Rectangle detail_r = new Rectangle(0f, 0f);
+        detail_r.setBorderWidthLeft(0f);
+        detail_r.setBorderWidthBottom(1f);
+        detail_r.setBorderWidthRight(0f);
+        detail_r.setBorderWidthTop(0f);
+
+
+        Document document = new Document(PageSize.A4, 36, 36, 36, 54);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
         try {
             filepath = this.getFoxyParam("FileUploadPath");
             filename = filepath + File.separatorChar + this.ordId + ".jpg";
+
             File f = new File(filename);
-            if (!f.exists()) {
+            if (f.exists() == false) {
                 filename = filepath + File.separatorChar + "default.jpg";
             }
-            Image img = Image.getInstance((String)filename);
+
+
+            Image img = Image.getInstance(filename);
             img.setBorder(1);
-            img.scalePercent(50.0f);
-            PdfWriter writer = PdfWriter.getInstance((Document)document, (OutputStream)baos);
-            writer.setPageEvent((PdfPageEvent)new OrderFormPageUtil());
+            img.scalePercent(50);
+
+
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            writer.setPageEvent(new OrderFormPageUtil());
             document.open();
-            PdfPTable datatable = new PdfPTable(4);
-            PdfPTable innertable = new PdfPTable(2);
-            PdfPTable toptable = new PdfPTable(2);
+
+
+            /*
+             * Content Here
+             */
+            PdfPTable datatable = new PdfPTable(4);     // Create table with 4 columns
+            PdfPTable toptable = new PdfPTable(3);
             PdfPTable headertable = new PdfPTable(2);
+
             PdfPTable detailtable = new PdfPTable(11);
-            PdfPTable remarktable = new PdfPTable(3);
-            int[] colWidths = new int[]{15, 35, 15, 35};
-            int[] headerColWidths = new int[]{60, 40};
+            PdfPTable remarktable = new PdfPTable(2); //Table for remarks if any
+
+            int headerColWidths[] = {60, 40};   // Column width
             headertable.setWidths(headerColWidths);
-            headertable.setWidthPercentage(100.0f);
+            headertable.setWidthPercentage(100); // percentage
             headertable.getDefaultCell().setBorder(0);
-            headertable.getDefaultCell().setHorizontalAlignment(2);
-            headertable.getDefaultCell().setVerticalAlignment(6);
-            int[] topColWidths = new int[]{50, 50};
+            headertable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_RIGHT);
+            headertable.getDefaultCell().setVerticalAlignment(Element.ALIGN_BOTTOM);
+
+            int topColWidths[] = {15, 45, 40};   // Column width
             toptable.setWidths(topColWidths);
-            toptable.setWidthPercentage(100.0f);
-            toptable.getDefaultCell().setBorder(0);
-            toptable.getDefaultCell().setFixedHeight(100.0f);
-            toptable.getDefaultCell().setHorizontalAlignment(0);
-            toptable.getDefaultCell().setVerticalAlignment(1);
-            int[] innerColWidths = new int[]{30, 70};
-            innertable.setWidths(innerColWidths);
-            innertable.setWidthPercentage(100.0f);
-            innertable.getDefaultCell().setBorder(0);
-            innertable.getDefaultCell().setHorizontalAlignment(0);
-            innertable.getDefaultCell().setVerticalAlignment(1);
+            toptable.setWidthPercentage(100); // percentage
+            toptable.getDefaultCell().setBorderWidth(1);
+            toptable.getDefaultCell().setPadding(3);
+            toptable.getDefaultCell().setBorderColor(BaseColor.GRAY);
+            toptable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            toptable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            int colWidths[] = {15, 35, 15, 35};   // Column width
             datatable.setWidths(colWidths);
-            datatable.setWidthPercentage(100.0f);
-            datatable.getDefaultCell().setPadding(3.0f);
-            datatable.getDefaultCell().setBorderWidth(1.0f);
+            datatable.setWidthPercentage(100); // percentage
+            datatable.getDefaultCell().setPadding(3);
+            datatable.getDefaultCell().setBorderWidth(1);
             datatable.getDefaultCell().setBorderColor(BaseColor.GRAY);
-            datatable.getDefaultCell().setHorizontalAlignment(0);
-            datatable.getDefaultCell().setVerticalAlignment(1);
-            int[] detailColWidths = new int[]{12, 20, 15, 15, 14, 12, 10, 10, 10, 14, 10};
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            datatable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            int detailColWidths[] = {12, 20, 15, 15, 14, 12, 10, 10, 10, 14, 10};   // Column width
             detailtable.setWidths(detailColWidths);
-            detailtable.setWidthPercentage(100.0f);
-            detailtable.getDefaultCell().setPadding(3.0f);
+            detailtable.setWidthPercentage(100); // percentage
+            detailtable.getDefaultCell().setPadding(3);
             detailtable.getDefaultCell().setBorder(0);
-            detailtable.getDefaultCell().setBorderWidthBottom(1.0f);
-            detailtable.getDefaultCell().setHorizontalAlignment(0);
-            detailtable.getDefaultCell().setVerticalAlignment(1);
-            int[] remarkColWidths = new int[]{12, 70, 18};
+            detailtable.getDefaultCell().setBorderWidthBottom(1);
+            detailtable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            detailtable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+
+            int remarkColWidths[] = {12, 88};   // Column width
             remarktable.setWidths(remarkColWidths);
-            remarktable.setWidthPercentage(100.0f);
-            remarktable.getDefaultCell().setPadding(3.0f);
+            remarktable.setWidthPercentage(100); // percentage
+            remarktable.getDefaultCell().setPadding(3);
             remarktable.getDefaultCell().setBorder(0);
-            remarktable.getDefaultCell().setBorderWidthBottom(1.0f);
-            remarktable.getDefaultCell().setHorizontalAlignment(0);
-            remarktable.getDefaultCell().setVerticalAlignment(1);
+            remarktable.getDefaultCell().setBorderWidthBottom(1);
+            remarktable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+            remarktable.getDefaultCell().setVerticalAlignment(Element.ALIGN_CENTER);
+
+            // Get data from database
+            Session session = (Session) HibernateUtil.currentSession();
+
             headertable.addCell(new Phrase("Order Confirmation", font12));
-            Object tmpDateStr = null;
-            if (ord.getUpdUsrId() == null) {
-                headertable.addCell(new Phrase("Created by " + ord.getInsUsrId() + " on " + fmt.format(ord.getInsTime()), font7));
+
+            String tmpDateStr = null;
+            // Populate table with data
+
+            tmpstr = "[" + companycodelastchar;
+            if ("".equals(this.origin) || this.origin == null) {
+                tmpstr = tmpstr + "/*] ";
             } else {
-                headertable.addCell(new Phrase("Last Updated by " + ord.getUpdUsrId() + " on " + fmt.format(ord.getUpdTime()), font7));
+                tmpstr = tmpstr + "/" + this.origin + "] ";
             }
+            headertable.addCell(new Phrase(tmpstr, font7));
+
+            //do not pass in 0 to close hibernate session for Company Name
             String companyNameFull = ld.getCompanyNameFull(ord.getCnameCode(), 1);
             cell = new PdfPCell(new Phrase(companyNameFull, font12));
+            cell.setColspan(2);
+            cell.setBorder(0);
+            cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
+            toptable.addCell(cell);
+
+            cell = new PdfPCell(img, false); //Don't use fix to cell, else image scale would not work
+            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            cell.setVerticalAlignment(Element.ALIGN_TOP);
             cell.setColspan(1);
             cell.setBorder(0);
-            cell.setVerticalAlignment(6);
+            cell.setRowspan(10);
+            cell.setPadding(0);
             toptable.addCell(cell);
-            cell = new PdfPCell(img, false);
-            cell.setHorizontalAlignment(2);
-            cell.setVerticalAlignment(6);
-            cell.setColspan(1);
-            cell.setBorder(0);
-            toptable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Customer Code", font10));
             cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getCustCode()), font10));
+            toptable.addCell(cell);
+            cell = new PdfPCell(new Phrase(": " + ord.getCustCode(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Merchandiser", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getMerchandiser()), font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
+            toptable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("Brand/Division", font10));
             cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
+            toptable.addCell(cell);
             cell = new PdfPCell(new Phrase(": " + ord.getCustBrand() + " / " + ord.getCustDivision(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("NEW ORDER", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("/ AMENDMENT / STOCK / CANCEL", font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
+            toptable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("Style No", font10));
             cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getStyleCode()), font10));
+            toptable.addCell(cell);
+            cell = new PdfPCell(new Phrase(": " + ord.getStyleCode(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Unit Price", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": US$" + ord.getUnitPrice() + "/pc", font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
+            toptable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("Our Ref #", font10));
             cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getOrderId()), font10));
+            toptable.addCell(cell);
+            cell = new PdfPCell(new Phrase(": " + ord.getOrderId(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Price Term", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getPriceTerm()), font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
+            toptable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("Ord Date", font10));
             cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            Date tmpdate = ord.getOrderDate();
-            cell = tmpdate == null ? new PdfPCell(new Phrase(": ", font10)) : new PdfPCell(new Phrase(": " + fmt2.format(ord.getOrderDate()), font10));
+            toptable.addCell(cell);
+            tmpdate = ord.getOrderDate();
+            if (tmpdate == null) {
+                cell = new PdfPCell(new Phrase(": ", font10));
+            } else {
+                cell = new PdfPCell(new Phrase(": " + fmt2.format(tmpdate), font10));
+            }
             cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
+            toptable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("Season", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getSeason()), font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Description", font10));
             cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getDescription()), font10));
+            toptable.addCell(cell);
+            cell = new PdfPCell(new Phrase(": " + ord.getSeason(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Graphic Emb", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            String graphicType = ld.getGraphicTypeDesc(ord.getGraphicTypeCode());
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)graphicType), font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
+            toptable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("Fabric Type", font10));
             cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getFabricType()), font10));
+            toptable.addCell(cell);
+            cell = new PdfPCell(new Phrase(": " + ord.getFabricType(), font10));
             cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Colouring", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            String colourType = ld.getColourTypeDesc(ord.getColourTypeCode());
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)colourType), font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Fabrication", font10));
+            toptable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Merchandiser", font10));
+            cell.cloneNonPositionParameters(border_l);
+            toptable.addCell(cell);
+            cell = new PdfPCell(new Phrase(": " + ord.getMerchandiser(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            toptable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Price Term", font10));
+            cell.cloneNonPositionParameters(border_lb);
+            toptable.addCell(cell);
+            cell = new PdfPCell(new Phrase(": CMT", font10));
+            cell.cloneNonPositionParameters(border_lbc);
+            toptable.addCell(cell);
+
+            //////////////////////////////////////////////////////////
+
+            cell = new PdfPCell(new Phrase("NEW ORDER", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getFabrication()), font10));
-            cell.cloneNonPositionParameters(border_lc);
-            cell.setColspan(3);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Fabric Mill", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getFabricMill()), font10));
+            cell = new PdfPCell(new Phrase("/ AMENDMENT / STOCK / CANCEL", font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("DailyCap/worker", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
-            cell = ord.getDailyCap() != null ? new PdfPCell(new Phrase(": " + ord.getDailyCap() + " dz/cm", font10)) : new PdfPCell(new Phrase(": ", font10));
+            if (ord.getDailyCap() != null) {
+                cell = new PdfPCell(new Phrase(": " + ord.getDailyCap() + " dz/cm", font10));
+            } else {
+                cell = new PdfPCell(new Phrase(": ", font10));
+            }
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Fabric YY/DZ", font10));
+
+
+            cell = new PdfPCell(new Phrase("Graphic Emb", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getFabricYyDz()), font10));
+            //since order table keep Graphic Type code, need to use listdata to get detail/name/desc
+            String graphicType = ld.getGraphicTypeDesc(ord.getGraphicTypeCode());
+            cell = new PdfPCell(new Phrase(": " + graphicType, font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Colouring", font10));
+            cell.cloneNonPositionParameters(border_rc);
+            datatable.addCell(cell);
+            //since order table keep Graphic Type code, need to use listdata to get detail/name/desc
+            String colourType = ld.getColourTypeDesc(ord.getColourTypeCode());
+            cell = new PdfPCell(new Phrase(": " + colourType, font10));
+            cell.cloneNonPositionParameters(border_r);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase("Fabric Mill", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabricMill(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Wash Type", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getWash()), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getWash(), font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Fabric Price", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getFabricPrice()), font10));
-            cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Wash Cost", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getSwash()), font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("Factory CMT", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + (null != ord.getFtyCm() ? ord.getFtyCm() : ""), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFtyCm(), font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Costing Basic Trim", font10));
+
+            /*cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getDoubleStrValue(ord.getCostBasicTrim()), font10));
+
+            cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Costing Add Trim", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(":" + ord.getDoubleStrValue(ord.getCostAddTrim()), font10));
-            cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Actual CMT", font10));
+            datatable.addCell(cell);*/
+            
+            cell = new PdfPCell(new Phrase("Graphic/EMB Cost", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(":" + ord.getDoubleStrValue(ord.getActualCm()), font10));
+
+            cell = new PdfPCell(new Phrase(": " + ord.getGcost(), font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Factory Trim", font10));
+
+
+            cell = new PdfPCell(new Phrase("Description", font10));
             cell.cloneNonPositionParameters(border_l);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getDoubleStrValue(ord.getFtyTrim()), font10));
-            cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("", font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Actual Output", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = ord.getActualOutput() != null ? new PdfPCell(new Phrase(": " + ord.getDoubleStrValue(ord.getActualOutput()) + "/cm", font10)) : new PdfPCell(new Phrase(":", font10));
-            cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(""));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Actual Trim", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + ord.getDoubleStrValue(ord.getActualTrim()), font10));
-            cell.cloneNonPositionParameters(border_lc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("", font10));
-            cell.cloneNonPositionParameters(border_rc);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("", font10));
-            cell.cloneNonPositionParameters(border_r);
-            datatable.addCell(cell);
-            border_l.setBorderWidthBottom(1.0f);
-            border_lc.setBorderWidthBottom(1.0f);
-            border_rc.setBorderWidthBottom(1.0f);
-            border_r.setBorderWidthBottom(1.0f);
-            cell = new PdfPCell(new Phrase("Remark (Factory)", font10));
-            cell.cloneNonPositionParameters(border_l);
-            datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase(": " + StringUtils.stripToEmpty((String)ord.getRemark()), font10));
+            cell = new PdfPCell(new Phrase(": " + ord.getDescription(), font10));
             cell.cloneNonPositionParameters(border_lc);
             cell.setColspan(3);
             datatable.addCell(cell);
+
+
+            cell = new PdfPCell(new Phrase("Fabrication", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getFabrication(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
+            datatable.addCell(cell);
+
+
+            border_l.setBorderWidthBottom(1f);
+            border_lc.setBorderWidthBottom(1f);
+            border_rc.setBorderWidthBottom(1f);
+            border_r.setBorderWidthBottom(1f);
+
+            cell = new PdfPCell(new Phrase("Remark", font10));
+            cell.cloneNonPositionParameters(border_l);
+            datatable.addCell(cell);
+
+            cell = new PdfPCell(new Phrase(": " + ord.getRemark(), font10));
+            cell.cloneNonPositionParameters(border_lc);
+            cell.setColspan(3); //span across all the rest of 3 col (to force it occupy full row)
+            datatable.addCell(cell);
+
+
             cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
+
             cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
+
+            //create SQL statement
+            tmpstr = "from OrderSummary where orderid = '" + this.ordId + "' AND status != 'D' ";
+            if ("".equals(this.origin) || this.origin == null) {
+                //dont add any filter to origin column if to select all ordsummary info (dropdown box all)
+            } else {
+                tmpstr = tmpstr + "AND origin = '" + this.origin + "' ";
+            }
+            tmpstr = tmpstr + "order by month, location";
+
+            List orders = session.createQuery(tmpstr).list();
+
             detailtable.addCell(new Phrase("SubRef #", tblHeader));
+            //Right align col header
             cell = new PdfPCell(new Phrase("Quantity", tblHeader));
-            cell.setHorizontalAlignment(2);
-            cell.setPaddingRight(10.0f);
+            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            cell.setPaddingRight(10f);
             cell.cloneNonPositionParameters(detail_r);
             detailtable.addCell(cell);
+
             detailtable.addCell(new Phrase("Delivery", tblHeader));
             detailtable.addCell(new Phrase("Fabric Date", tblHeader));
             detailtable.addCell(new Phrase("Destination", tblHeader));
@@ -1373,25 +1710,28 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
             detailtable.addCell(new Phrase("Ship By", tblHeader));
             detailtable.addCell(new Phrase("Factory", tblHeader));
             detailtable.addCell(new Phrase("Method", tblHeader));
-            datatable.setHeaderRows(1);
-            tmpstr = "from OrderSummary where orderid = '" + this.ordId + "' AND status != 'D' ";
-            if (!"".equals(this.origin) && this.origin != null) {
-                tmpstr = tmpstr + "AND location = '" + this.origin + "' ";
-            }
-            tmpstr = tmpstr + "order by month, location";
-            Session session = HibernateUtil.currentSession();
-            List orders = session.createQuery(tmpstr).list();
+
+            datatable.setHeaderRows(1); // this is the end of the table header
+
+
             Category cat = null;
             String rmkStr = null;
             Boolean firstRmk = true;
-            for (int i = 0; i < orders.size(); ++i) {
-                OrderSummary ords = (OrderSummary)orders.get(i);
+            for (int i = 0; i < orders.size(); i++) {
+                OrderSummary ords = (OrderSummary) orders.get(i);
                 detailtable.addCell(new Phrase(ords.getMonth() + ords.getLocation(), font8));
-                cell = "PCS".equals(ords.getUnit()) ? new PdfPCell(new Phrase("" + ords.getQtyPcsRounded() + " pcs", font8)) : new PdfPCell(new Phrase("" + ords.getQtyDznRounded() + " dzn", font8));
-                cell.setHorizontalAlignment(2);
-                cell.setPaddingRight(10.0f);
+
+                //Dynamic quantity column
+                if ("PCS".equals(ords.getUnit())) {
+                    cell = new PdfPCell(new Phrase(ords.getQtyPcsRounded() + " pcs", font8));
+                } else {
+                    cell = new PdfPCell(new Phrase(ords.getQtyDznRounded() + " dzn", font8));
+                }
+                cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                cell.setPaddingRight(10f);
                 cell.cloneNonPositionParameters(detail_r);
                 detailtable.addCell(cell);
+
                 tmpdate = ords.getDelivery();
                 if (tmpdate != null) {
                     detailtable.addCell(new Phrase(fmt2.format(ords.getDelivery()), font8));
@@ -1404,6 +1744,7 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                 } else {
                     detailtable.addCell(new Phrase(" ", font8));
                 }
+
                 detailtable.addCell(new Phrase(ld.getDestinationDesc(ords.getDestination(), 1), font8));
                 cat = ld.getCategory(ords.getCatId(), 1);
                 if (cat != null) {
@@ -1416,7 +1757,7 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                 detailtable.addCell(new Phrase(ords.getShip(), font8));
                 detailtable.addCell(new Phrase(ld.getFactoryNameShort(ords.getMainFactory()), font8));
                 detailtable.addCell(new Phrase(ords.getOrderMethod(), font8));
-                rmkStr = ords.getRemark();
+
                 //Add in to display remark if no empty or null
                 rmkStr = ords.getRemark();
                 if (rmkStr != null) {
@@ -1436,6 +1777,7 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                     }
                 }
             }//End for inner loop
+
             if (sortedRmk != null) {
                 if (sortedRmk.size() > 0) {
                     Set st = sortedRmk.entrySet();
@@ -1451,45 +1793,50 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
                     }
                 }
             }
-            document.add((Element)headertable);
-            document.add((Element)new Paragraph(" "));
-            document.add((Element)toptable);
-            document.add((Element)new Paragraph(" "));
-            document.add((Element)datatable);
-            document.add((Element)new Paragraph(" "));
-            document.add((Element)detailtable);
-            if (!firstRmk.booleanValue()) {
-                document.add((Element)new Paragraph(" "));
-                document.add((Element)remarktable);
+
+            document.add(headertable);
+            document.add(new Paragraph(" "));
+            document.add(toptable);
+            document.add(new Paragraph(" "));
+            document.add(datatable);
+            document.add(new Paragraph(" "));
+            document.add(detailtable);
+            if (firstRmk == false) {
+                document.add(new Paragraph(" "));
+                document.add(remarktable);
             }
-            document.add((Element)new Paragraph(" "));
+            document.add(new Paragraph(" "));
             document.close();
+        } catch (DocumentException e) {
+            //e.printStackTrace();
+        } catch (Exception e) {
+            //e.printStackTrace();
         }
-        catch (DocumentException e) {
-            e.printStackTrace();
+        resp.setContentType("application/pdf");
+
+        String filestr;
+        if ("".equals(this.origin) || this.origin == null) {
+            filestr = this.ordId + "-All";
+        } else {
+            filestr = this.ordId + "-" + ld.getCountryDesc(this.origin, 1);
         }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        String filestr = "".equals(this.origin) || this.origin == null ? this.ordId + "-All" : this.ordId + "-" + ld.getCountryDesc(this.origin, 1);
+
+        resp.setHeader("Content-Disposition", "attachment; filename=OCF-" + filestr + ".pdf");
+        resp.setContentLength(baos.size());
+
         try {
-            resp.setHeader("Content-Disposition", "attachment; filename=OCF-" + filestr + ".pdf");
-            resp.setContentLength(baos.size());
             out = resp.getOutputStream();
-            baos.writeTo((OutputStream)out);
+            baos.writeTo(out);
             out.flush();
             out.close();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        finally {
+        } catch (Exception e) {
+            //e.printStackTrace();
+        } finally {
             HibernateUtil.closeSession();
         }
         this.ctx.responseComplete();
         return null;
     }
-    
     public String OrderConfirmationFormByCountryFmt04(Orders ord) {
         HttpServletResponse resp = (HttpServletResponse)this.ectx.getResponse();
         ServletOutputStream out = null;
@@ -1786,11 +2133,10 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
             cell = new PdfPCell(new Phrase(": " + ord.getDoubleStrValue(ord.getFtyTrim()), font10));
             cell.cloneNonPositionParameters(border_lc);
             datatable.addCell(cell);
-            cell = new PdfPCell(new Phrase("Graphic/EMB Cost", font10));
+            cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_rc);
             datatable.addCell(cell);
-
-            cell = new PdfPCell(new Phrase(": " + ord.getGcost(), font10));
+            cell = new PdfPCell(new Phrase("", font10));
             cell.cloneNonPositionParameters(border_r);
             datatable.addCell(cell);
             cell = new PdfPCell(new Phrase("Actual Output", font10));
@@ -1963,6 +2309,4 @@ public class FoxyDownloadOrderConfirmationFormPage extends Page implements Seria
         this.ctx.responseComplete();
         return null;
     }
-
-
 }

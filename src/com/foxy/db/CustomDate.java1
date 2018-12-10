@@ -8,6 +8,15 @@ public class CustomDate extends Date {
 	private final String pattern = "YYYY-MM-DD HH:MM:SS";
 	private final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
 
+	
+	public CustomDate(){
+		
+	}
+	
+	public CustomDate(Date date) {
+		super(date.getTime());
+	}
+	
 	@Override
 	public String toString() {
 		return simpleDateFormat.format(this);

@@ -48,7 +48,7 @@
     <property column="updusrid" name="updUsrId"/>
     <property column="updtime" name="updTime"/>
     <property column="insusrid" name="insUsrId"/>
-   <!--  <property column="instime" name="insTime"/> -->
+    <property column="instime" name="insTime"/>
     <property column="marketingremark" name="remarkMarketing"/>
   </class>
 </hibernate-mapping>

@@ -65,7 +65,7 @@ public class Orders implements Auditable, Serializable {
     private String updUsrId = null;
     private Date updTime = null;
     private String insUsrId = null;
-    private CustomDate insTime = null;
+    private Date insTime = null;
 	private String remarkMarketing = null;
 
     /**
@@ -483,14 +483,12 @@ public class Orders implements Auditable, Serializable {
     }
 
     public Date getInsTime() {
-    	if(insTime == null)
-    		insTime=new  CustomDate();
         return insTime;
     }
 
     public void setInsTime(Date insTime) {
     	
-        this.insTime =new  CustomDate();
+        this.insTime =insTime;
     }
 
     public Date getUpdTime() {
